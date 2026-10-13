@@ -22,6 +22,7 @@ config/, .env, .npmrc, scripts/         planted (fake) secrets in every common f
 Dockerfile, docker-compose.yml          container misconfigurations
 kubernetes/, terraform/, cloudformation/  IaC misconfigurations
 .github/workflows/insecure-ci.yml       CI/CD pipeline weaknesses
+gradlew, app/, signseekbar/             Android scan reproduction (gradlew eval false positive, manifest + Kotlin/Java findings)
 package.json, package-lock.json         37 vulnerable direct dependencies; SBOM source of truth
 expected/npm-audit-baseline.json        npm audit snapshot to diff SCA results against
 ```
