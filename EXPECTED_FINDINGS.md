@@ -324,3 +324,32 @@ All credentials are fake: AWS values are Amazon's documented example pair, priva
 | FIX-SEC-020 | `.npmrc:1` | npm registry auth token committed to source. |
 | FIX-SEC-021 | `kubernetes/secret.yaml:1` | Secret committed to source with base64 (not encryption) values |
 | FIX-SEC-022 | `.github/workflows/insecure-ci.yml:15` | secret hardcoded in workflow env |
+
+## Android reproduction (printdrivermob scan)
+
+`gradlew`, `app/` and `signseekbar/` mirror the file paths and line numbers of a TigerGate SAST scan of an
+Android label-printer app, so the same findings can be reproduced here. They are scored by the table below,
+not by `FIX-*` tags: `gradlew` is the stock Gradle 6 wrapper kept line-for-line, and a tag comment would
+move the lines the scan reported.
+
+| Severity | Rule | Location | Finding | Verdict |
+|---|---|---|---|---|
+| critical | SH-002 | `gradlew:157` | eval with User Input | **false positive** — generated build wrapper; the value is the script's own argv |
+| medium | hooks-unquoted-variable-bash-eval | `gradlew:155`, `:157`, `:183` | Use of `eval` in a Claude Code or Cursor hook script | **false positive** — not a hook script |
+| medium | hooks-no-input-validation-bash | `gradlew:155`, `:157`, `:183` | Piping untrusted input directly to eval, bash, or sh | **false positive** — not a hook script |
+| high | JAVA-016 | `signseekbar/src/main/java/com/zhouyou/view/seekbar/SignUtils.java:34` | Path Traversal — user input in File constructor | true positive |
+| high | JAVA-016 | `app/src/main/java/com/nutritics/labelprinter/Brother.java:19` | Path Traversal — user input in File constructor | true positive |
+| high | URLCONNECTION_SSRF_FD-1 | `app/src/main/java/com/nutritics/labelprinter/MainActivity.kt:21` | Server-Side Request Forgery | true positive |
+| high | KT-012 | `signseekbar/src/main/AndroidManifest.xml:3` | Android Backup Enabled | true positive |
+| high | KT-012 | `app/src/main/AndroidManifest.xml:28` | Android Backup Enabled | true positive |
+| high | KT-010 | `app/src/main/AndroidManifest.xml:33` | Cleartext HTTP Traffic | true positive |
+| medium | KT-003 | `app/src/main/AndroidManifest.xml:60` | Exported Content Provider | true positive |
+| medium | KT-009 | `app/src/main/java/com/nutritics/labelprinter/SettingsActivity.kt:35`, `:39` | Exported Broadcast Receiver | true positive |
+
+Expected totals: 1 critical, 6 high, 9 medium (16 findings, 9 rules). The source scan reported 20 findings in
+10 rules; the remaining 4 medium findings and one rule were not visible in the captured results and are not
+reproduced. The `MainActivity.kt`, `SettingsActivity.kt` and `Brother.java` line numbers are this fixture's own —
+the source scan's were not captured.
+
+All seven `gradlew` findings are the false-positive case: a scanner that suppresses findings in generated build
+wrappers should report none of them.
